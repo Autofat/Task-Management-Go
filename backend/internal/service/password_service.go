@@ -12,16 +12,16 @@ func NewPasswordService() *PasswordService {
 	return &PasswordService{}
 }
 
-func (ps *PasswordService) HashPassword(rawPassword string) (string, error) {
+func (ps *PasswordService) HashPassword(rawPassword string) ([]byte, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(rawPassword), 14)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(hashedPassword), nil
+	return hashedPassword, nil
 }
 
-func (ps *PasswordService) CompareHashAndPassword(hashedPassword string, rawPassword string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(rawPassword))
+func (ps *PasswordService) CompareHashAndPassword(hashedPassword []byte, rawPassword string) error {
+	err := bcrypt.CompareHashAndPassword(hashedPassword, []byte(rawPassword))
 	if err != nil {
 		return errors.New("password does not match")
 	}
