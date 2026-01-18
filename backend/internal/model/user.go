@@ -12,7 +12,14 @@ type User struct {
 	Role     string `json:"role" type:varchar(50) gorm:"not null"`
 }
 
-// func (User *User) setPassword(password []byte) {
-// 	hashedPassword := bcrypt.GenerateFromPassword([]byte(password), 14)
-// 	User.Password = hashedPassword
-// }
+func (User *User) SetPassword(password string, passwordService interface {
+	HashPassword(rawPassword string) (string, error)
+}) error {
+	hashedPassword, err := passwordService.HashPassword(password)
+	if err != nil {
+		return err
+	}
+	User.Password = []byte(hashedPassword)
+	return nil
+	
+}
