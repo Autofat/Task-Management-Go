@@ -58,7 +58,7 @@ func (r *ProjectRepository) Update(id uint, updates *model.Project) error {
 		userRepo := NewUserRepository(r.db)
 		_,err = userRepo.FindByID(updates.OwnerID)
 		if err != nil {
-			return fmt.Errorf("owner with ID %d does not exist", updates.OwnerID)
+			return err
 		}
 		project.OwnerID = updates.OwnerID
 	}
@@ -67,6 +67,11 @@ func (r *ProjectRepository) Update(id uint, updates *model.Project) error {
 
 func (r *ProjectRepository) DeleteById(id uint) error {
 	result := r.db.Delete(&model.Project{}, id)
+	taskRepo := NewTaskRepository(r.db)
+	err := taskRepo.db.Where("project_id = ?", id).Delete(&model.Task{}).Error
+	if err != nil {
+		return err
+	}
 	if result.Error != nil {
 		return result.Error
 	}
