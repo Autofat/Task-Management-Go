@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"errors"
 	"task-management/internal/model"
 
 	"gorm.io/gorm"
@@ -61,7 +60,7 @@ func (r *UserRepository) DeleteById(id uint) error {
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return errors.New("no user found with the given ID")
+		return gorm.ErrRecordNotFound
 	}
 	return nil
 }

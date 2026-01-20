@@ -28,6 +28,8 @@ func ConnectDatabase() {
 	DB = database
 	DB.AutoMigrate(
 		&model.User{},
+		&model.Project{},
+		&model.Task{},
 	)
 	fmt.Println("Success Migrate")
 }

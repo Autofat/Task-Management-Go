@@ -1,76 +1,49 @@
 package main
 
 import (
+	"net/http"
+	"os"
 	"task-management/internal/config"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	config.ConnectDatabase()
 
+	router := gin.Default()
+	
+	router.GET("/health", func (c *gin.Context)  {
+		sqlDB, err := config.DB.DB()
+			if err != nil{
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status": "Unhealthy",
+					"database": "disconnected",
+				})
+			}
+
+			if err := sqlDB.Ping(); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "Unhealthy",
+				"database": "error",
+			})
+			}
+			
+			c.JSON(http.StatusOK, gin.H{
+				"status": "Healthy",
+				"database": "connected",
+			})
+	})
+	router.GET("/ping", func (c *gin.Context)  {
+		c.JSON(200, gin.H{
+			"message": "pong",
+		})
+	})
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "4444"
+	}
+
+  router.Run(":" + port)
 }
-
-// TASK REPO TESTING ===
-
-// 	value := model.Task{
-// 	Title:   "Task 23",
-// 	Description: "Tassdasdas",
-// 	ProjectID: 6,
-// 	Priority: "High",
-// 	Status:   "Done",
-// 	AssignedID: 65,
-// 	DueDate: "2024-12-31",
-// }
-
-// taskRepo := repository.NewTaskRepository(config.DB)
-// err := taskRepo.Create( &value)
-// if err != nil {
-// 	panic(err)
-// }
-
-// taskRepo := repository.NewTaskRepository(config.DB)
-// err := taskRepo.Update(3, &value)
-// if err != nil {
-// 	panic(err)
-// }
-
-// TaskRepo := repository.NewTaskRepository(config.DB)
-// res, err := TaskRepo.FindByID(6, 3)
-// if err != nil {
-// 	panic(err)
-// }
-// println(res.Title)
-
-// TaskRepo := repository.NewTaskRepository(config.DB)
-// res, err := TaskRepo.FindByProjectID(3)
-// if err != nil {
-// 	panic(err)
-// }
-// for _, T := range res {
-// 	println(T.Title)
-// }
-
-// taskRepo := repository.NewTaskRepository(config.DB)
-// err := taskRepo.DeleteById(6)
-// if err != nil {
-// 	panic(err)
-// }
-
-
-// PROJECT REPO TESTING ===
-
-// value := model.Project{
-// 	Title:   "Project Deleted",
-// 	OwnerID: 4,
-// }
-
-// projectRepo := repository.NewProjectRepository(config.DB)
-// err := projectRepo.Create(&value)
-// if err != nil {
-// 	panic(err)
-// }
-
-// projectRepo := repository.NewProjectRepository(config.DB)
-// err := projectRepo.DeleteById(7)
-// if err != nil {
-// 	panic(err)
-// }

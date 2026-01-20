@@ -65,7 +65,7 @@ func (r *ProjectRepository) Update(id uint, updates *model.Project) error {
 	return r.db.Save(&project).Error
 }
 
-func (r *ProjectRepository) DeleteById(id uint) error {
+func (r *ProjectRepository) DeleteByID(id uint) error {
 	result := r.db.Delete(&model.Project{}, id)
 	taskRepo := NewTaskRepository(r.db)
 	err := taskRepo.db.Where("project_id = ?", id).Delete(&model.Task{}).Error
