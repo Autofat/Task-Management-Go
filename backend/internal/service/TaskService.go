@@ -36,10 +36,10 @@ func (s *TaskService) CreateTask(title, description, priority string, projectID,
 	}
 
 	if priority == "" {
-		priority = "Medium"
+		priority = "medium"
 	}
 
-	status := "To Do"
+	status := "pending"
 
 	task := &model.Task{
 		Title:       title,

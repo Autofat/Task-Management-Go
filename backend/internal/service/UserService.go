@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"strings"
 	"task-management/internal/model"
 	"task-management/internal/repository"
 )
@@ -62,10 +61,6 @@ func (s *UserService) UpdateUser(id uint, fullname, role string) error {
 	user, err := s.userRepository.FindByID(id)
 	if err != nil {
 		return ErrUserNotFound
-	}
-
-	if strings.TrimSpace(fullname) == "" || strings.TrimSpace(role) == "" {
-		return ErrInvalidInput
 	}
 	
 	if fullname != "" {

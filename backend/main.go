@@ -1,44 +1,40 @@
 package main
 
 import (
-	"net/http"
 	"os"
 	"task-management/internal/config"
+	"task-management/internal/handler"
+	"task-management/internal/repository"
+	"task-management/internal/routes"
+	"task-management/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
 
+
+
 func main() {
 	config.ConnectDatabase()
+	
+	userRepository := repository.NewUserRepository(config.DB)
+	projectRepository := repository.NewProjectRepository(config.DB)
+	taskRepository := repository.NewTaskRepository(config.DB)
+	
+	passwordService := service.NewPasswordService()
+	userService := service.NewUserService(userRepository, passwordService)
+	projectService := service.NewProjectService(userRepository, projectRepository)
+	taskService := service.NewTaskService(taskRepository, projectRepository, userRepository)
+	
+	userHandler := handler.NewUserHandler(userService)
+	projectHandler := handler.NewProjectHandler(projectService)
+	taskHandleer := handler.NewTaskHandler(taskService)
 
 	router := gin.Default()
 	
-	router.GET("/health", func (c *gin.Context)  {
-		sqlDB, err := config.DB.DB()
-			if err != nil{
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"status": "Unhealthy",
-					"database": "disconnected",
-				})
-			}
-
-			if err := sqlDB.Ping(); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{
-				"status": "Unhealthy",
-				"database": "error",
-			})
-			}
-			
-			c.JSON(http.StatusOK, gin.H{
-				"status": "Healthy",
-				"database": "connected",
-			})
-	})
-	router.GET("/ping", func (c *gin.Context)  {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
+	routes.SetupCheckRoutes(router)
+	routes.SetupUserRoutes(router, userHandler)
+	routes.SetupProjectRoutes(router, projectHandler)
+	routes.SetupTaskRoutes(router, taskHandleer)
 
 	port := os.Getenv("PORT")
 	if port == "" {
