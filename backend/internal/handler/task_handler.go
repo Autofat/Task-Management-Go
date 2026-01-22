@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"task-management/internal/service"
+	"task-management/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,59 +31,16 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 	task, err := h.taskService.CreateTask(req.Title, req.Description, req.Priority, req.ProjectID, req.AssignedID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to create task", err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Task Created Successfully",
-		"data": gin.H{
-			"id":          task.ID,
-			"title":       task.Title,
-			"description": task.Description,
-			"project_id":  task.ProjectID,
-			"assigned_id": task.AssignedID,
-			"status":      task.Status,
-			"due_date":    task.DueDate,
-		},
-	})
 
-}
-
-func (h *TaskHandler) GetTaskByID(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.ParseUint(idStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-	projectIDStr := c.Query("project_id")
-	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid project_id",
-		})
-		return
-	}
-	task, err := h.taskService.GetTaskByID(uint(id), uint(projectID))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
+	response := gin.H{
 			"id":          task.ID,
 			"title":       task.Title,
 			"description": task.Description,
@@ -91,25 +49,53 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 			"status":      task.Status,	
 			"due_date":    task.DueDate,
 			"priority":    task.Priority,
-		},
-	})
+	}
 
+	utils.SuccessResponse(c, http.StatusCreated, "Task Created Successfully", response)
+}
+
+func (h *TaskHandler) GetTaskByID(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid task ID", err.Error())
+		return
+	}
+	projectIDStr := c.Query("project_id")
+	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusBadRequest, "invalid project ID", err.Error())
+		return
+	}
+	task, err := h.taskService.GetTaskByID(uint(id), uint(projectID))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusNotFound, "Task not found", err.Error())
+		return
+	}
+
+	response := gin.H{
+			"id":          task.ID,
+			"title":       task.Title,
+			"description": task.Description,
+			"project_id":  task.ProjectID,
+			"assigned_id": task.AssignedID,
+			"status":      task.Status,	
+			"due_date":    task.DueDate,
+			"priority":    task.Priority,
+		}
+	utils.SuccessResponse(c, http.StatusOK, "Task Retrieved Successfully", response)
 }
 
 func (h *TaskHandler) GetTasksByProjectID(c *gin.Context) {
 	projectIDStr := c.Query("project_id")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid project_id",
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid project ID", err.Error())
 		return
 	}
 	tasks, err := h.taskService.GetTasksByProjectID(uint(projectID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve tasks", err.Error())
 		return
 	}
 
@@ -127,28 +113,24 @@ func (h *TaskHandler) GetTasksByProjectID(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data": tasksResponse,
-	})
+	utils.SuccessResponse(c, http.StatusOK, "Tasks Retrieved Successfully", tasksResponse)
 }
 
 func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid Task ID", err.Error())
 		return
 	}
+
 	projectIdStr := c.Query("project_id")
 	projectId, err := strconv.ParseUint(projectIdStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid project_id",
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid project ID", err.Error())
 		return
 	}
+
 	var req struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
@@ -157,10 +139,9 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		AssignedID  uint   `json:"assigned_id"`
 		DueDate	 	string `json:"due_date"`
 	}
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 	err = h.taskService.UpdateTask(
@@ -175,41 +156,29 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update task", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Task Updated Successfully",
-	})
+	utils.SuccessResponse(c, http.StatusOK, "Task Updated Successfully", nil)
 }
 
 func (h *TaskHandler) DeleteTask(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid Task ID", err.Error())
 		return
 	}
 	projecrIdStr := c.Query("project_id")
 	projectId, err := strconv.ParseUint(projecrIdStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "invalid project_id",
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid Project ID", err.Error())
 		return
 	}
 	err = h.taskService.DeleteTask(uint(id), uint(projectId))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusInternalServerError,"Failed Deleting Task", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Task Deleted Successfully",
-	})
+	utils.SuccessResponse(c, http.StatusOK, "Task Deleted Successfully", nil)
 }

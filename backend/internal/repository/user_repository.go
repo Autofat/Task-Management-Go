@@ -55,12 +55,5 @@ func (r *UserRepository) Update(id uint, updates *model.User) error {
 }
 
 func (r *UserRepository) DeleteById(id uint) error {
-	result := r.db.Delete(&model.User{}, id)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
-	return nil
+	return r.db.Unscoped().Delete(&model.User{}, id).Error
 }

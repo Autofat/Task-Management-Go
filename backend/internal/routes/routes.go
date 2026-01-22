@@ -51,7 +51,7 @@ func SetupUserRoutes(router *gin.Engine, h *handler.UserHandler) {
 
 }
 
-func SetupProjectRoutes(router *gin.Engine, h *handler.ProjectHandler) {
+func SetupProjectRoutes(router *gin.Engine, h *handler.ProjectHandler, pmh *handler.ProjectMemberHandler) {
 	projects := router.Group("/projects")
 	{
 		projects.POST("", h.CreateProject)
@@ -59,6 +59,11 @@ func SetupProjectRoutes(router *gin.Engine, h *handler.ProjectHandler) {
 		projects.GET("", h.GetProjectsByOwnerID)
 		projects.PUT("/:id", h.UpdateProject)
 		projects.DELETE("/:id", h.DeleteProject)
+
+		projects.GET("/:id/members", pmh.GetProjectMembers)
+		projects.POST("/:id/members", pmh.InviteMember)
+		projects.PUT("/:id/members/:user_id", pmh.UpdateMemberRole)
+		projects.DELETE("/:id/members/:user_id", pmh.RemoveMember)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"task-management/internal/service"
+	"task-management/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,66 +28,54 @@ func (h *UserHandler) RegisterUser(c *gin.Context){
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 
 	user, err := h.userService.CreateUser(req.Email, req.Password, req.Fullname, req.Role)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to create user", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "User Created Successfully",
-		"data" : gin.H{
-			"id": user.ID,
-			"email": user.Email,
-			"fullname": user.Fullname,
-			"role": user.Role,
-		},
-	})
+	response := gin.H{
+		"id": user.ID,
+		"email": user.Email,
+		"fullname": user.Fullname,
+		"role": user.Role,
+	}
+
+	utils.SuccessResponse(c, http.StatusCreated, "User Created Successfully", response)
 }
 
 func (h *UserHandler) GetUser(c *gin.Context){
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID", err.Error())
 		return
 	}
 	user, err := h.userService.GetUserByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": "user not found",
-		})
+		utils.ErrorResponse(c, http.StatusNotFound, "User not found", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "User Retrieved Successfully",
-		"data": gin.H{
-			"id": user.ID,
-			"email": user.Email,
-			"fullname": user.Fullname,
-			"role": user.Role,
-		},
-	})
+	
+	response := gin.H{
+		"id": user.ID,
+		"email": user.Email,
+		"fullname": user.Fullname,
+		"role": user.Role,
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "User Retrieved Successfully", response)
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context){
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
-
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID", err.Error())
 		return
 	}
 
@@ -96,41 +85,29 @@ func (h *UserHandler) UpdateUser(c *gin.Context){
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 
 	err = h.userService.UpdateUser(uint(id), req.Fullname, req.Role)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to update user", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "User Updated Successfully",
-	})
+	utils.SuccessResponse(c, http.StatusOK, "User Updated Successfully", nil)
 }
 
 func (h *UserHandler) DeleteUser(c *gin.Context){
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID", err.Error())
 		return
 	}
 	err = h.userService.DeleteUser(uint(id))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Failed Deteleting User", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "User Deleted Successfully",
-	})
+	utils.SuccessResponse(c, http.StatusOK, "User Deleted Successfully", nil)
 }

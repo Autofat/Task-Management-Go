@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 	"task-management/internal/service"
+	"task-management/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,75 +26,59 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 	project, err := h.projectService.CreateProject(req.Title, req.OwnerID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create project", err.Error())
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Project Created Successfully",
-		"data": gin.H{
-			"id":          project.ID,
-			"title":       project.Title,
-			"owner_id":    project.OwnerID,
-		},
-	})
-
+	response := gin.H{
+		"id":          project.ID,
+		"title":       project.Title,
+		"owner_id":    project.OwnerID,
+	}
+	utils.SuccessResponse(c, http.StatusCreated, "Project Created Successfully", response)
 }
 
 func (h *ProjectHandler) GetProjectByID(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid project ID", err.Error())
 		return
 	}
 	project, err := h.projectService.GetProjectByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusNotFound, "Project not found", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"data": gin.H{
-			"id":       project.ID,
-			"title":    project.Title,
-			"owner_id": project.OwnerID,
-		},
-	})
+
+	response := gin.H{
+		"id":       project.ID,
+		"title":    project.Title,
+		"owner_id": project.OwnerID,
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Project Retrieved Successfully", response)
 
 }
 
 func (h *ProjectHandler) GetProjectsByOwnerID(c *gin.Context) {
 	ownerIDStr := c.Query("owner_id")
 	if ownerIDStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "owner_id query parameter is required",
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "owner id query parameter is required", nil)
 		return
 	}
 	ownerID, err := strconv.ParseUint(ownerIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid owner ID", err.Error())
 		return
 	}
 	projects, err := h.projectService.GetProjectsByOwnerID(uint(ownerID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve projects", err.Error())
 		return
 	}
 
@@ -110,9 +95,7 @@ func (h *ProjectHandler) GetProjectsByOwnerID(c *gin.Context) {
 			},
 		})
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"data": responseProjects,
-	})
+	utils.SuccessResponse(c, http.StatusOK, "Projects Retrieved Successfully", responseProjects)
 }
 
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
@@ -122,46 +105,33 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid project ID", err.Error())
 		return
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
 	err = h.projectService.UpdateProject(uint(id), req.Title)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update project", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Project Updated Successfully",
-	})
+	utils.SuccessResponse(c, http.StatusOK, "Project Updated Successfully", nil)
 }
 
 func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid project ID", err.Error())
 		return
 	}
 	err = h.projectService.DeleteProject(uint(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete project", err.Error())
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Project Deleted Successfully",
-	})
+	
+	utils.SuccessResponse(c, http.StatusOK, "Project Deleted Successfully", nil)
 }

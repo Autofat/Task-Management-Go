@@ -8,12 +8,14 @@ import (
 type ProjectService struct {
 	userRepository *repository.UserRepository
 	projectRepository *repository.ProjectRepository
+	projectMemberRepository *repository.ProjectMemberRepository
 }
 
-func NewProjectService(userRepo *repository.UserRepository, projectRepo *repository.ProjectRepository) *ProjectService {
+func NewProjectService(userRepo *repository.UserRepository, projectRepo *repository.ProjectRepository, projectMemberRepo *repository.ProjectMemberRepository) *ProjectService {
 	return &ProjectService{
 		userRepository: userRepo,
 		projectRepository: projectRepo,
+		projectMemberRepository: projectMemberRepo,
 	}
 }
 
@@ -31,8 +33,13 @@ func (s *ProjectService) CreateProject (title string, ownerID uint) (*model.Proj
 		Title:       title,
 		OwnerID:     ownerID,
 	}
-
+	
 	err = s.projectRepository.Create(project)
+	if err != nil {
+		return nil, err
+	}
+	
+	err = s.projectMemberRepository.AddMember(project.ID, ownerID, "OWNER")
 	if err != nil {
 		return nil, err
 	}
