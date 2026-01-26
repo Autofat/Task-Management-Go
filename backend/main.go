@@ -23,21 +23,24 @@ func main() {
 	
 	passwordService := service.NewPasswordService()
 	userService := service.NewUserService(userRepository, passwordService)
+	authService := service.NewAuthService(userRepository, passwordService)
 	projectService := service.NewProjectService(userRepository, projectRepository, projectMemberRepository)
 	projectMemberService := service.NewProjectMemberService(userRepository, projectRepository, projectMemberRepository)
 	taskService := service.NewTaskService(taskRepository, projectRepository, userRepository)
 	
 	userHandler := handler.NewUserHandler(userService)
-	projectHandler := handler.NewProjectHandler(projectService)
+	authHandler := handler.NewAuthHandler(authService)
+	projectHandler := handler.NewProjectHandler(projectService, projectMemberService)
 	projectMemberHandler := handler.NewProjectMemberHandler(projectMemberService)
-	taskHandleer := handler.NewTaskHandler(taskService)
+	taskHandler := handler.NewTaskHandler(taskService, projectMemberService)
 
 	router := gin.Default()
 	
 	routes.SetupCheckRoutes(router)
 	routes.SetupUserRoutes(router, userHandler)
+	routes.SetupAuthRoutes(router, authHandler) 
 	routes.SetupProjectRoutes(router, projectHandler, projectMemberHandler)
-	routes.SetupTaskRoutes(router, taskHandleer)
+	routes.SetupTaskRoutes(router, taskHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {

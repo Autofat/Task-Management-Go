@@ -19,11 +19,11 @@ func NewProjectMemberHandler(projectMemberService *service.ProjectMemberService)
 	}
 }
 
-// ADA HARD CODE BUAT JWT! 
+
 func (h *ProjectMemberHandler) InviteMember(c *gin.Context) {
 	
 	// HARD CODE FOR JWT
-	inviterID := uint(1)
+	inviterID := c.GetUint("user_id")
 	
 	projectIDstr := c.Param("id")
 	projectID, err := strconv.ParseUint(projectIDstr, 10, 32)
@@ -76,13 +76,23 @@ func (h *ProjectMemberHandler) GetProjectMembers(c *gin.Context) {
 		})
 	}
 
+	isMember, err := h.projectMemberService.IsMember(uint(projectID), c.GetUint("user_id"))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to verify project membership", err.Error())
+		return
+	}
+	if !isMember {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+
 	utils.SuccessResponse(c, http.StatusOK, "Project Members Retrieved Successfully", memberResponses)
 }
 
-// ADA HARD CODE BUAT JWT!
+
 func (h *ProjectMemberHandler) UpdateMemberRole(c *gin.Context) {
 	// HARD CODE FOR JWT
-	updaterID := uint(1)
+	updaterID := c.GetUint("user_id")
 	
 	projectIdstr := c.Param("id")
 	projectID, err := strconv.ParseUint(projectIdstr, 10, 32)
@@ -115,11 +125,10 @@ func (h *ProjectMemberHandler) UpdateMemberRole(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, "Member role updated successfully", nil)
 }
 
-// ADA HARD CODE BUAT JWT!
 func (h *ProjectMemberHandler) RemoveMember(c *gin.Context) {
-	// HARD CODE FOR JWT
-	removerID := uint(6)
-	// ==================
+
+	removerID := c.GetUint("user_id")
+
 
 	projectIdstr := c.Param("id")
 	projectID, err := strconv.ParseUint(projectIdstr, 10, 32)

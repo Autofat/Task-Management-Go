@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"task-management/internal/config"
 	"task-management/internal/handler"
+	"task-management/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,19 +41,33 @@ func SetupCheckRoutes(router *gin.Engine) {
 	})
 }
 
+func SetupAuthRoutes(router *gin.Engine, h *handler.AuthHandler) {
+	auth := router.Group("/auth")
+	{
+		auth.POST("/login", h.Login)
+		auth.POST("/logout", middleware.AuthMiddleware(), h.Logout)
+	}
+}
+
 func SetupUserRoutes(router *gin.Engine, h *handler.UserHandler) {
 	users := router.Group("/users")
 	{
 		users.POST("", h.RegisterUser)
-		users.GET("/:id", h.GetUser)
-		users.PUT("/:id", h.UpdateUser)
-		users.DELETE("/:id", h.DeleteUser)
+
+		protected := users.Group("")
+		protected.Use(middleware.AuthMiddleware())
+		{
+			protected.GET("/:id", h.GetUser)
+			protected.PUT("/:id", h.UpdateUser)
+			protected.DELETE("/:id", h.DeleteUser)
+		}
 	}
 
 }
 
 func SetupProjectRoutes(router *gin.Engine, h *handler.ProjectHandler, pmh *handler.ProjectMemberHandler) {
 	projects := router.Group("/projects")
+	projects.Use(middleware.AuthMiddleware())
 	{
 		projects.POST("", h.CreateProject)
 		projects.GET("/:id", h.GetProjectByID)
@@ -69,6 +84,7 @@ func SetupProjectRoutes(router *gin.Engine, h *handler.ProjectHandler, pmh *hand
 
 func SetupTaskRoutes(router *gin.Engine, h *handler.TaskHandler) {
 	tasks := router.Group("/tasks")
+	tasks.Use(middleware.AuthMiddleware())
 	{
 		tasks.POST("", h.CreateTask)
 		tasks.GET("/:id", h.GetTaskByID)

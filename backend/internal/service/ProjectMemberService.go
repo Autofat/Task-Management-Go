@@ -64,6 +64,14 @@ func (s *ProjectMemberService) GetProjectMembers(projectID uint) ([]model.Projec
 		return nil, ErrProjectNotFound
 	}
 
+	isMember, err := s.projectMemberRepository.IsMember(projectID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if !isMember {
+		return nil, ErrUnauthorized
+	}
+
 	return s.projectMemberRepository.GetMembersByProjectID(projectID)
 }
 
@@ -126,6 +134,13 @@ func (s *ProjectMemberService) RemoveMemberFromProject(projectID, userID, remove
 	}
 	
 	return s.projectMemberRepository.RemoveMember(projectID, userID)
+}
+
+func (s *ProjectMemberService) IsMember(projectID, userID uint) (bool, error) {
+	if projectID == 0 || userID == 0 {
+		return false, ErrInvalidInput
+	}
+	return s.projectMemberRepository.IsMember(projectID, userID)
 }
 
 

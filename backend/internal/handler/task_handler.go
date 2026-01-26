@@ -11,11 +11,13 @@ import (
 
 type TaskHandler struct {
 	taskService *service.TaskService
+	projectMemberService *service.ProjectMemberService
 }
 
-func NewTaskHandler(taskService *service.TaskService) *TaskHandler {
+func NewTaskHandler(taskService *service.TaskService, projectMemberService *service.ProjectMemberService) *TaskHandler {
 	return &TaskHandler{
 		taskService: taskService,
+		projectMemberService: projectMemberService,
 	}
 }
 
@@ -30,10 +32,23 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	}
 
+	userId := c.GetUint("user_id")
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
+
+	isMember, err := h.projectMemberService.IsMember(req.ProjectID, userId)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to verify project membership", err.Error())
+		return
+	}
+	if !isMember {
+		utils.ErrorResponse(c, http.StatusForbidden, "You are not a member of this project", nil)
+		return
+	}
+
 	task, err := h.taskService.CreateTask(req.Title, req.Description, req.Priority, req.ProjectID, req.AssignedID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to create task", err.Error())
@@ -61,6 +76,17 @@ func (h *TaskHandler) GetTaskByID(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "invalid task ID", err.Error())
 		return
 	}
+	
+	isMember, err := h.projectMemberService.IsMember(uint(id), c.GetUint("user_id"))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to verify project membership", err.Error())
+		return
+	}
+	if !isMember {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+
 	projectIDStr := c.Query("project_id")
 	projectID, err := strconv.ParseUint(projectIDStr, 10, 32)
 	if err != nil {
@@ -96,6 +122,16 @@ func (h *TaskHandler) GetTasksByProjectID(c *gin.Context) {
 	tasks, err := h.taskService.GetTasksByProjectID(uint(projectID))
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve tasks", err.Error())
+		return
+	}
+
+	isMember, err := h.projectMemberService.IsMember(uint(projectID), c.GetUint("user_id"))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to verify project membership", err.Error())
+		return
+	}
+	if !isMember {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
 		return
 	}
 
@@ -139,11 +175,22 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		AssignedID  uint   `json:"assigned_id"`
 		DueDate	 	string `json:"due_date"`
 	}
-
+	
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
+
+	isMember, err := h.projectMemberService.IsMember(uint(projectId), c.GetUint("user_id"))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to verify project membership", err.Error())
+		return
+	}
+	if !isMember {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+
 	err = h.taskService.UpdateTask(
 		uint(id), 
 		req.Title, 
@@ -169,16 +216,29 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid Task ID", err.Error())
 		return
 	}
-	projecrIdStr := c.Query("project_id")
-	projectId, err := strconv.ParseUint(projecrIdStr, 10, 32)
+
+	projectIdStr := c.Query("project_id")
+	projectId, err := strconv.ParseUint(projectIdStr, 10, 32)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid Project ID", err.Error())
 		return
 	}
+	
+	isMember, err := h.projectMemberService.IsMember(uint(projectId), c.GetUint("user_id"))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to verify project membership", err.Error())
+		return
+	}
+	if !isMember {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+	
 	err = h.taskService.DeleteTask(uint(id), uint(projectId))
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError,"Failed Deleting Task", err.Error())
 		return
 	}
+	
 	utils.SuccessResponse(c, http.StatusOK, "Task Deleted Successfully", nil)
 }

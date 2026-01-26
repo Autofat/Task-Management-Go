@@ -19,4 +19,7 @@ var (
 	ErrUserAlreadyExistsinProject 	= errors.New("User is already a member of the project")
 	ErrUserNotMember				= errors.New("User is not a member of the project")
 	ErrCannotRemoveOwner			= errors.New("Cannot remove the project owner from the project")
+
+	ErrInvalidCredentials		= errors.New("Invalid email or password")
+	ErrGenerateTokenFailed		= errors.New("Failed to generate token")
 )

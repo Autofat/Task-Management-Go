@@ -68,6 +68,15 @@ func (h *UserHandler) GetUser(c *gin.Context){
 		"role": user.Role,
 	}
 
+	userID := c.GetUint("user_id")
+	role := c.GetString("role")
+	requestedID := uint(id)
+
+	if role != "ADMIN" && userID != requestedID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+
 	utils.SuccessResponse(c, http.StatusOK, "User Retrieved Successfully", response)
 }
 
@@ -94,6 +103,17 @@ func (h *UserHandler) UpdateUser(c *gin.Context){
 		utils.ErrorResponse(c, http.StatusBadRequest, "Failed to update user", err.Error())
 		return
 	}
+
+	
+	userID := c.GetUint("user_id")
+	role := c.GetString("role")
+	requestedID := uint(id)
+
+	if role != "ADMIN" && userID != requestedID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+	
 	utils.SuccessResponse(c, http.StatusOK, "User Updated Successfully", nil)
 }
 
@@ -104,10 +124,21 @@ func (h *UserHandler) DeleteUser(c *gin.Context){
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID", err.Error())
 		return
 	}
+	
 	err = h.userService.DeleteUser(uint(id))
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Failed Deteleting User", err.Error())
 		return
 	}
+	
+	userID := c.GetUint("user_id")
+	role := c.GetString("role")
+	requestedID := uint(id)
+	
+	if role != "ADMIN" && userID != requestedID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+	
 	utils.SuccessResponse(c, http.StatusOK, "User Deleted Successfully", nil)
 }

@@ -11,25 +11,29 @@ import (
 
 type ProjectHandler struct {
 	projectService *service.ProjectService
+	projectMemberService *service.ProjectMemberService
 }
 
-func NewProjectHandler(projectService *service.ProjectService) *ProjectHandler {
+func NewProjectHandler(projectService *service.ProjectService, projectMemberService *service.ProjectMemberService) *ProjectHandler {
 	return &ProjectHandler{
 		projectService: projectService,
+		projectMemberService: projectMemberService,
 	}
 }
 
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	var req struct {
 		Title       string `json:"title"`
-		OwnerID     uint   `json:"owner_id" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
-	project, err := h.projectService.CreateProject(req.Title, req.OwnerID)
+
+	ownerID := c.GetUint("user_id")
+
+	project, err := h.projectService.CreateProject(req.Title, ownerID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create project", err.Error())
 		return
@@ -49,12 +53,23 @@ func (h *ProjectHandler) GetProjectByID(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid project ID", err.Error())
 		return
 	}
+
 	project, err := h.projectService.GetProjectByID(uint(id))
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusNotFound, "Project not found", err.Error())
 		return
 	}
 
+	isMember, err := h.projectMemberService.IsMember(uint(id), c.GetUint("user_id"))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to verify project membership", err.Error())
+		return
+	}
+	if !isMember {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+	
 	response := gin.H{
 		"id":       project.ID,
 		"title":    project.Title,
@@ -66,17 +81,9 @@ func (h *ProjectHandler) GetProjectByID(c *gin.Context) {
 }
 
 func (h *ProjectHandler) GetProjectsByOwnerID(c *gin.Context) {
-	ownerIDStr := c.Query("owner_id")
-	if ownerIDStr == "" {
-		utils.ErrorResponse(c, http.StatusBadRequest, "owner id query parameter is required", nil)
-		return
-	}
-	ownerID, err := strconv.ParseUint(ownerIDStr, 10, 32)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid owner ID", err.Error())
-		return
-	}
-	projects, err := h.projectService.GetProjectsByOwnerID(uint(ownerID))
+
+	ownerID := c.GetUint("user_id")
+	projects, err := h.projectService.GetProjectsByOwnerID(ownerID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve projects", err.Error())
 		return
@@ -100,7 +107,7 @@ func (h *ProjectHandler) GetProjectsByOwnerID(c *gin.Context) {
 
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	var req struct {
-		Title       string `json:"title" `
+		Title       string `json:"title"`
 	}
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
@@ -112,6 +119,19 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body", err.Error())
 		return
 	}
+
+	project, err := h.projectService.GetProjectByID(uint(id))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusNotFound, "Project not found", err.Error())
+		return
+	}
+
+	userID := c.GetUint("user_id")
+	if project.OwnerID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+
 	err = h.projectService.UpdateProject(uint(id), req.Title)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update project", err.Error())
@@ -127,6 +147,19 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid project ID", err.Error())
 		return
 	}
+	
+	project, err := h.projectService.GetProjectByID(uint(id))
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusNotFound, "Project not found", err.Error())
+		return
+	}
+	
+	userID := c.GetUint("user_id")
+	if project.OwnerID != userID {
+		utils.ErrorResponse(c, http.StatusForbidden, "Access Denied", nil)
+		return
+	}
+
 	err = h.projectService.DeleteProject(uint(id))
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete project", err.Error())
