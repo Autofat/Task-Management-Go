@@ -135,6 +135,41 @@ func (h *TaskHandler) GetTasksByProjectID(c *gin.Context) {
 		return
 	}
 
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+	sort := c.DefaultQuery("sort", "created_at")
+	order := c.DefaultQuery("order", "asc")
+	status := c.Query("status")
+	priority := c.Query("priority")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid page parameter", nil)
+		return
+	}
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid limit parameter", nil)
+		return
+	}
+
+	validStatuses := map[string]bool{"pending": true, "in_progress": true, "completed": true}
+	if status != "" && !validStatuses[status] {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid status parameter", nil)
+		return
+	}
+	validPriorities := map[string]bool{"low": true, "medium": true, "high": true}
+	if priority != "" && !validPriorities[priority] {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid priority parameter", nil)
+		return
+	}
+
+	tasks, total, err := h.taskService.GetTasksByProjectIDWithFilters(uint(projectID), status, priority, page, limit, sort, order )
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve tasks with filters", err.Error())
+		return
+	}
+
 	tasksResponse := []gin.H{}
 	for _, task := range tasks {
 		tasksResponse = append(tasksResponse, gin.H{
@@ -149,8 +184,20 @@ func (h *TaskHandler) GetTasksByProjectID(c *gin.Context) {
 		})
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, "Tasks Retrieved Successfully", tasksResponse)
+	response := gin.H{
+		"data": 	 tasksResponse,
+		"pagination": gin.H{
+			"page":  page,
+			"limit": limit,
+			"total": total,
+			"pages": (total + int64(limit) -1) / int64(limit),
+		},
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Tasks Retrieved Successfully", response)
 }
+
+
 
 func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	idStr := c.Param("id")

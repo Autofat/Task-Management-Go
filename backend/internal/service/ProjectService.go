@@ -61,6 +61,10 @@ func (s *ProjectService) GetProjectsByOwnerID(ownerID uint) ([]model.Project, er
 	return s.projectRepository.FindByOwnerId(ownerID)
 }
 
+func (s *ProjectService) GetProjectsByOwnerIDWithPagination(ownerID uint, page, limit int, sort, order string) ([]model.Project, int64, error) {
+	return s.projectRepository.GetProjectsByOwnerIDWithPagination(ownerID, page, limit, sort, order)
+}
+
 func (s *ProjectService) UpdateProject(id uint, title string) error {
 	updates, err := s.projectRepository.FindByID(id)
 	if err != nil {

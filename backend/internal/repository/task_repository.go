@@ -47,6 +47,32 @@ func (r *TaskRepository) FindByProjectID(ProjectId uint) ([]model.Task, error) {
 	return task, nil
 }
 
+func (r *TaskRepository) GetTasksByProjectIDWithFilters(ProjectId uint, status, priority string, page, limit int, sort, order string) ([]model.Task, int64, error) {
+	var tasks []model.Task
+	var totalCount int64
+
+	offseth := (page - 1) * limit
+	query := r.db.Model(&model.Task{}).Where("project_id = ?", ProjectId)
+
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+	if priority != "" {
+		query = query.Where("priority = ?", priority)
+	}
+	if sort != "" && order != "" {
+		query = query.Order(sort + " " + order)
+	}else {
+		query = query.Order("created_at ASC")
+	}
+
+	query.Count(&totalCount)
+
+	err := query.Offset(offseth).Limit(limit).Preload("Project").Find(&tasks).Error
+	return tasks, totalCount, err
+
+}
+
 func (r *TaskRepository) Update(id uint, updates *model.Task) error {
 	var task model.Task
 	UserRepo := NewUserRepository(r.db)

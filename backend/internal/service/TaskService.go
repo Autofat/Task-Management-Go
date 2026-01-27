@@ -64,6 +64,11 @@ func (s *TaskService) GetTasksByProjectID(projectID uint) ([]model.Task, error) 
 	return s.taskRepository.FindByProjectID(projectID)
 }
 
+func (s *TaskService) GetTasksByProjectIDWithFilters(projectID uint, status, priority string, page, limit int, sort, order string) ([]model.Task, int64, error) { 
+	return s.taskRepository.GetTasksByProjectIDWithFilters(projectID, status, priority, page, limit, sort, order)
+}
+
+
 func (s *TaskService) UpdateTask(id uint, title, description, status, dueDate, priority string, projectID, assigneeID uint, ) error {
 	_, err := s.taskRepository.FindByID(id, projectID)
 	if err != nil {

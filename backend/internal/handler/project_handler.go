@@ -83,6 +83,39 @@ func (h *ProjectHandler) GetProjectByID(c *gin.Context) {
 func (h *ProjectHandler) GetProjectsByOwnerID(c *gin.Context) {
 
 	ownerID := c.GetUint("user_id")
+
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+	sort := c.DefaultQuery("sort", "created_at")
+	order := c.DefaultQuery("order", "asc")
+
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid page parameter", nil)
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid limit parameter", nil)
+		return
+	}
+
+	validSorts := map[string]bool{
+		"created_at": true,
+		"title":      true,
+	}
+
+	validOrders := map[string]bool{
+		"asc":  true,
+		"desc": true,
+	}
+
+	if !validSorts[sort] || !validOrders[order] {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid sort / order parameter", nil)
+		return
+	}
+	
 	projects, err := h.projectService.GetProjectsByOwnerID(ownerID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to retrieve projects", err.Error())
@@ -102,8 +135,20 @@ func (h *ProjectHandler) GetProjectsByOwnerID(c *gin.Context) {
 			},
 		})
 	}
-	utils.SuccessResponse(c, http.StatusOK, "Projects Retrieved Successfully", responseProjects)
+
+	response:=gin.H{
+		"data": responseProjects,
+		"pagination": gin.H{
+			"page":  page,
+			"limit": limit,
+			"total": len(projects),
+			"pages": (len(projects) + limit -1) / limit,
+		},
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Projects Retrieved Successfully", response)
 }
+
 
 func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	var req struct {

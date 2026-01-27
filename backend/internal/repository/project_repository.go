@@ -43,6 +43,26 @@ func (r *ProjectRepository) FindByOwnerId(ownerID uint) ([]model.Project,error) 
 	return projects, nil
 }
 
+func (r *ProjectRepository) GetProjectsByOwnerIDWithPagination(ownerID uint, page, limit int, sort, order string) ([]model.Project, int64, error) {
+	var projects []model.Project
+	var totalCount int64
+
+	offseth := (page - 1) * limit
+
+	query := r.db.Model(&model.Project{}).Where("owner_id = ?", ownerID)
+
+	if sort != "" && order != "" {
+		query = query.Order(sort + " " + order)
+	}else {
+		query = query.Order("created_at ASC")
+	}
+
+	query.Count(&totalCount)
+
+	err := query.Limit(limit).Offset(offseth).Preload("Owner").Find(&projects).Error
+	return projects, totalCount, err
+}
+
 func (r *ProjectRepository) Update(id uint, updates *model.Project) error {
 	var project model.Project
 	err := r.db.First(&project, id).Error
