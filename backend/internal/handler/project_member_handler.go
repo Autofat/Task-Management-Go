@@ -33,7 +33,7 @@ func (h *ProjectMemberHandler) InviteMember(c *gin.Context) {
 	}
 
 	var req struct {
-		UserID uint `json:"user_id" binding:"required"`
+		UserEmail string `json:"email" binding:"required,email"`
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -41,7 +41,7 @@ func (h *ProjectMemberHandler) InviteMember(c *gin.Context) {
 		return
 	}
 
-	err = h.projectMemberService.InviteMember(uint(projectID), req.UserID, inviterID)
+	err = h.projectMemberService.InviteMember(uint(projectID), req.UserEmail, inviterID)
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusForbidden, "Failed to invite member", err.Error())
 		return

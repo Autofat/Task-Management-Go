@@ -14,7 +14,7 @@ func NewProjectMemberRepository(db *gorm.DB) *ProjectMemberRepository {
 	return &ProjectMemberRepository{db: db}
 }
 
-func (r *ProjectMemberRepository) AddMember(projectID, userID uint, role string) error{
+func (r *ProjectMemberRepository) AddMember(projectID uint, userID uint, role string) error{
 	member := &model.ProjectMember{
 		ProjectID: projectID,
 		UserID:    userID,
@@ -30,6 +30,12 @@ func (r *ProjectMemberRepository) GetMembersByProjectID(projectID uint) ([]model
 		return nil, err
 	}
 	return members, nil
+}
+
+func (r *UserRepository) GetUserByEmail(email string) (*model.User, error) {
+    var user model.User
+    err := r.db.Where("email = ? AND deleted_at IS NULL", email).First(&user).Error
+    return &user, err
 }
 
 func (r *ProjectMemberRepository) RemoveMember(projectID, userID uint) error{

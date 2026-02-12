@@ -20,8 +20,8 @@ func NewProjectMemberService(userRepo *repository.UserRepository, projectRepo *r
 
 }
 
-func (s *ProjectMemberService) InviteMember(projectID , userID, inviterID uint) error {
-	if projectID == 0 || userID == 0 || inviterID == 0 {
+func (s *ProjectMemberService) InviteMember(projectID uint, userEmail string, inviterID uint) error {
+	if projectID == 0 || userEmail == "" || inviterID == 0 {
 		return ErrInvalidInput
 	}
 	
@@ -39,10 +39,11 @@ func (s *ProjectMemberService) InviteMember(projectID , userID, inviterID uint) 
 		return ErrUnauthorized
 	}
 
-	_, err = s.userRepository.FindByID(userID)
+	user, err := s.userRepository.FindByEmail(userEmail)
 	if err != nil {
 		return ErrUserNotFound
 	}
+	userID := user.ID
 
 	isMember, err := s.projectMemberRepository.IsMember(projectID, userID)
 	if err != nil {
